@@ -5,6 +5,7 @@ package com.thucnobita.adb;
 import android.annotation.SuppressLint;
 import android.app.Application;
 import android.content.Context;
+import android.content.Intent;
 import android.os.Build;
 import android.os.Bundle;
 import android.provider.Settings;
@@ -47,6 +48,7 @@ import io.github.muntashirakon.adb.AdbStream;
 import io.github.muntashirakon.adb.android.AdbMdns;
 
 public class MainActivity extends AppCompatActivity {
+    private static final Object mLock = new Object();
     private static final int DEFAULT_PORT_ADDRESS = 5555;
 
     private MaterialButton connectAdbButton;
@@ -56,6 +58,7 @@ public class MainActivity extends AppCompatActivity {
     private AppCompatTextView commandOutput;
     private MainViewModel viewModel;
     private boolean connected = false;
+    private final boolean isAuto = true;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -67,11 +70,27 @@ public class MainActivity extends AppCompatActivity {
         runCommandButton = findViewById(R.id.command_run);
         commandInput = findViewById(R.id.command_input);
         commandOutput = findViewById(R.id.command_output);
-        init();
+
+        if(isAuto){
+            connectAdbButton.setVisibility(View.GONE);
+            pairAdbButton.setVisibility(View.GONE);
+        }else{
+            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) {
+                connectAdbButton.setVisibility(View.VISIBLE);
+                pairAdbButton.setVisibility(View.GONE);
+            }else{
+                connectAdbButton.setVisibility(View.GONE);
+                pairAdbButton.setVisibility(View.VISIBLE);
+            }
+        }
+
+        initOnClick();
+        initWatch();
+
+        viewModel.autoConnect();
     }
 
-    @SuppressLint("SetTextI18n")
-    private void init() {
+    private void initOnClick() {
         connectAdbButton.setOnClickListener(v -> {
             if (connected) {
                 viewModel.disconnect();
@@ -90,12 +109,9 @@ public class MainActivity extends AppCompatActivity {
                             viewModel.connect(port);
                         }
                     })
-                    .setNegativeButton(android.R.string.cancel, null)
+                    .setCancelable(false)
                     .show();
         });
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) {
-            pairAdbButton.setVisibility(View.GONE);
-        }
         pairAdbButton.setOnClickListener(v -> {
             View view = getLayoutInflater().inflate(R.layout.dialog_input, null);
             TextInputEditText pairingCodeEditText = view.findViewById(R.id.pairing_code);
@@ -128,11 +144,21 @@ public class MainActivity extends AppCompatActivity {
             String command = Objects.requireNonNull(commandInput.getText()).toString();
             viewModel.execute(command);
         });
+    }
+
+    @SuppressLint("SetTextI18n")
+    private void initWatch(){
         viewModel.watchConnectAdb().observe(this, isConnected -> {
             connected = isConnected;
             if (isConnected) {
                 Toast.makeText(this, getString(R.string.connected_to_adb), Toast.LENGTH_SHORT).show();
                 connectAdbButton.setText(R.string.disconnect_adb);
+                if(isAuto){
+
+                }else {
+                    connectAdbButton.setVisibility(View.VISIBLE);
+                    pairAdbButton.setVisibility(View.GONE);
+                }
                 String IGClass = "com.thucnobita.autoapp.MainTest";
                 String IGPackage = "com.thucnobita.autoapp.test";
                 viewModel.execute("am instrument -w -r -e debug false -e class " +
@@ -142,28 +168,74 @@ public class MainActivity extends AppCompatActivity {
             } else {
                 Toast.makeText(this, getString(R.string.disconnected_from_adb), Toast.LENGTH_SHORT).show();
                 connectAdbButton.setText(R.string.connect_adb);
+                runOnUiThread(() -> {
+                    commandOutput.setText(null);
+                });
+                if (Build.VERSION.SDK_INT > Build.VERSION_CODES.Q) {
+                    if(isAuto){
+                        new MaterialAlertDialogBuilder(this)
+                                .setTitle("Pair Code")
+                                .setMessage("+ Yes: Show dialog for input code\n + No: Skip pair code")
+                                .setPositiveButton("Yes", (dialog, which) -> {
+                                    runOnUiThread(() -> {
+                                        pairAdbButton.callOnClick();
+                                    });
+                                    dialog.dismiss();
+                                })
+                                .setNegativeButton("No", (dialog, which) -> {
+                                    runOnUiThread(() -> {
+                                        connectAdbButton.callOnClick();
+                                    });
+                                    dialog.dismiss();
+                                })
+                                .show();
+                    }else{
+                        connectAdbButton.setVisibility(View.GONE);
+                        pairAdbButton.setVisibility(View.VISIBLE);
+                    }
+                }else{
+                    if(isAuto){
+                        runOnUiThread(() -> {
+                            connectAdbButton.callOnClick();
+                        });
+                    }else{
+                        connectAdbButton.setVisibility(View.VISIBLE);
+                        pairAdbButton.setVisibility(View.GONE);
+                    }
+                }
             }
             runCommandButton.setEnabled(isConnected);
         });
         viewModel.watchPairAdb().observe(this, isPaired -> {
             if (isPaired) {
                 Toast.makeText(this, getString(R.string.pairing_successful), Toast.LENGTH_SHORT).show();
+                if(isAuto){
+                    runOnUiThread(() -> {
+                        connectAdbButton.callOnClick();
+                    });
+                }else{
+                    pairAdbButton.setVisibility(View.GONE);
+                }
             } else {
                 Toast.makeText(this, getString(R.string.pairing_failed), Toast.LENGTH_SHORT).show();
-            }
-        });
-        viewModel.watchCommandOutput().observe(this, output -> {
-            if(output != null){
-                if(output.toString().indexOf("INSTRUMENTATION_STATUS: test=loadTest") > 0 &&
-                        output.toString().indexOf("INSTRUMENTATION_STATUS_CODE: 1") > 0)
-                {
-                    commandOutput.setText("Connect to Auto App => Ok");
-                }else{
-                    commandOutput.setText("Error => \n" + output);
+                if(isAuto){
+                    runOnUiThread(() -> {
+                        pairAdbButton.callOnClick();
+                    });
                 }
             }
         });
-        viewModel.autoConnect();
+        viewModel.watchCommandOutput().observe(this, output -> {
+            if(!output.toString().isEmpty()){
+                if(output.toString().indexOf("INSTRUMENTATION_STATUS: test=loadTest") > 0 &&
+                        output.toString().indexOf("INSTRUMENTATION_STATUS_CODE: 1") > 0)
+                {
+                    commandOutput.setText(">>> Connect to AutoApp Ok");
+                }else{
+                    commandOutput.setText(output);
+                }
+            }
+        });
     }
 
     public static class MainViewModel extends AndroidViewModel {
@@ -221,16 +293,10 @@ public class MainActivity extends AppCompatActivity {
                 boolean connectionStatus = false;
                 try {
                     AbsAdbConnectionManager manager = AdbConnectionManager.getInstance(getApplication());
-                    try {
-                        connectionStatus = manager.connect(getHostIpAddress(getApplication()), port);
-                    } catch (Throwable th) {
-                        th.printStackTrace();
-                    }
-                    connectionStatus = true;
+                    connectionStatus = manager.connect(getHostIpAddress(getApplication()), port);
                 } catch (Throwable th) {
                     th.printStackTrace();
                 }
-                Log.println(Log.INFO,"TEST", "Connected failed");
                 connectAdb.postValue(connectionStatus);
             });
         }
@@ -278,36 +344,27 @@ public class MainActivity extends AppCompatActivity {
 
         public void pair(int port, String pairingCode) {
             executor.submit(() -> {
+                boolean pairingStatus = false;
                 try {
-                    boolean pairingStatus;
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-                        AbsAdbConnectionManager manager = AdbConnectionManager.getInstance(getApplication());
-                        pairingStatus = manager.pair(getHostIpAddress(getApplication()), port, pairingCode);
-                    } else pairingStatus = false;
-                    pairAdb.postValue(pairingStatus);
-                    autoConnectInternal();
+                    AbsAdbConnectionManager manager = AdbConnectionManager.getInstance(getApplication());
+                    pairingStatus = manager.pair(getHostIpAddress(getApplication()), port, pairingCode);
                 } catch (Throwable th) {
                     th.printStackTrace();
-                    pairAdb.postValue(false);
                 }
+                pairAdb.postValue(pairingStatus);
             });
         }
 
         @WorkerThread
         private void autoConnectInternal() {
+            boolean connectionStatus = false;
             try {
                 AbsAdbConnectionManager manager = AdbConnectionManager.getInstance(getApplication());
-                boolean connectionStatus;
-                try {
-                    connectionStatus = manager.autoConnect(getApplication());
-                } catch (Throwable th) {
-                    th.printStackTrace();
-                    connectionStatus = false;
-                }
-                connectAdb.postValue(connectionStatus);
+                connectionStatus = manager.autoConnect(getApplication());
             } catch (Throwable th) {
                 th.printStackTrace();
             }
+            connectAdb.postValue(connectionStatus);
         }
 
         private volatile boolean clearEnabled;

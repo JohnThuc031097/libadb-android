@@ -34,8 +34,9 @@ public abstract class AbsAdbConnectionManager implements Closeable {
     private String mHostAddress = "127.0.0.1";
     private String mOldHostAddress = mHostAddress;
     private int mApi = Build.VERSION_CODES.BASE;
-    private long mTimeout = Long.MAX_VALUE;
-    private TimeUnit mTimeoutUnit = TimeUnit.MILLISECONDS;
+//    private long mTimeout = Long.MAX_VALUE;
+    private long mTimeout = 2;
+    private TimeUnit mTimeoutUnit = TimeUnit.SECONDS;
     private boolean mThrowOnUnauthorised = false;
 
     /**

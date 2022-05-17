@@ -77,7 +77,8 @@ public class AdbConnectionManager extends AbsAdbConnectionManager {
             PublicKey publicKey = generateKeyPair.getPublic();
             mPrivateKey = generateKeyPair.getPrivate();
             // Generate a new certificate
-            String subject = "CN=My Awesome App";
+//            String subject = "CN=My Awesome App";
+            String subject = "CN=Local ADB";
             String algorithmName = "SHA512withRSA";
             long expiryDate = System.currentTimeMillis() + 86400000;
             CertificateExtensions certificateExtensions = new CertificateExtensions();
@@ -120,8 +121,11 @@ public class AdbConnectionManager extends AbsAdbConnectionManager {
 
     @NonNull
     @Override
+//    protected String getDeviceName() {
+//        return "MyAwesomeApp";
+//    }
     protected String getDeviceName() {
-        return "MyAwesomeApp";
+        return "LocalADB";
     }
 
     @Nullable

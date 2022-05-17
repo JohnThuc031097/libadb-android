@@ -1,5 +1,6 @@
 <!-- SPDX-License-Identifier: GPL-3.0-or-later OR Apache-2.0 -->
 <ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
@@ -9,20 +10,26 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:paddingVertical="8dp"
-        android:paddingHorizontal="16dp">
+        android:paddingHorizontal="16dp"
+        android:paddingVertical="8dp">
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/connect_adb"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="@string/connect_adb" />
+            android:layout_height="100dp"
+            android:text="@string/connect_adb"
+            android:textColor="@android:color/holo_orange_light"
+            android:textSize="18sp"
+            app:backgroundTint="@color/black" />
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/pair_adb"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="@string/pair_adb" />
+            android:layout_height="100dp"
+            android:text="@string/pair_adb"
+            android:textColor="@android:color/holo_orange_light"
+            android:textSize="18sp"
+            app:backgroundTint="@color/black" />
 
         <androidx.appcompat.widget.AppCompatEditText
             android:id="@+id/command_input"
@@ -47,8 +54,10 @@
             android:id="@+id/command_output"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:textIsSelectable="true"
+            android:layout_marginTop="50dp"
             android:fontFamily="monospace"
+            android:textIsSelectable="true"
+            android:textSize="18sp"
             tools:text="Command output" />
 
     </androidx.appcompat.widget.LinearLayoutCompat>

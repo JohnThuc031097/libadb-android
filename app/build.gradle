@@ -17,12 +17,6 @@ android {
         versionName "2.1.0"
     }
     signingConfigs {
-        debug {
-            storeFile file('keystore')
-            storePassword 'thucnobita@0310@1997'
-            keyAlias 'adb-v1'
-            keyPassword 'thucnobita@0310@1997'
-        }
         release {
             storePassword 'thucnobita@0310@1997'
             keyPassword 'thucnobita@0310@1997'
@@ -31,10 +25,6 @@ android {
         }
     }
     buildTypes {
-        debug {
-            minifyEnabled false
-            signingConfig signingConfigs.debug
-        }
         release {
             minifyEnabled false
             signingConfig signingConfigs.release
@@ -49,7 +39,7 @@ android {
 dependencies {
     implementation project(path: ':libadb')
     implementation 'androidx.appcompat:appcompat:1.4.1'
-    implementation 'com.google.android.material:material:1.5.0'
+    implementation 'com.google.android.material:material:1.6.0'
 
     // Library to generate X509Certificate. You can also use BouncyCastle for this.
     implementation 'com.github.MuntashirAkon:sun-security-android:1.1'
