@@ -17,6 +17,12 @@ android {
         versionName "2.1.0"
     }
     signingConfigs {
+        debug {
+            storePassword 'thucnobita@0310@1997'
+            keyPassword 'thucnobita@0310@1997'
+            keyAlias 'adb-v1'
+            storeFile file('keystore')
+        }
         release {
             storePassword 'thucnobita@0310@1997'
             keyPassword 'thucnobita@0310@1997'
@@ -25,8 +31,10 @@ android {
         }
     }
     buildTypes {
+        debug {
+            signingConfig signingConfigs.release
+        }
         release {
-            minifyEnabled false
             signingConfig signingConfigs.release
         }
     }
